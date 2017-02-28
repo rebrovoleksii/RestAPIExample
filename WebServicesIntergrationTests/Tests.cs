@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 
 using NUnit.Framework;
 using RestSharp;
@@ -19,11 +20,19 @@ namespace WebServicesIntergrationTests
     public class Tests
     {
         private TestRestClient _restClient;
- 
+        private Process _hostingApplication;
+
         [OneTimeSetUp]
         public void TestSuiteSetup()
-        { 
-          _restClient = new TestRestClient("http://localhost:8000"); 
+        {
+            _hostingApplication= LaunchHostingApplication();
+            _restClient = new TestRestClient("http://localhost:8000");
+        }
+
+        [OneTimeTearDown]
+        public void CleanUpTestSuite()
+        {
+            _hostingApplication.Kill();
         }
 
         [SetUp]
@@ -35,7 +44,7 @@ namespace WebServicesIntergrationTests
         [Test]
         public void GetUsers_ReturnsEmptyResponse_WhenNoUserInDB()
         {
-            var response = _restClient.ExecuteRequest("Services/TestService/Users", Method.GET);    
+            var response = _restClient.ExecuteRequest("Services/TestService/Users", Method.GET);
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
             var users = NewtonsoftJsonSerializer.Default.Deserialize<List<User>>(response);
@@ -48,12 +57,12 @@ namespace WebServicesIntergrationTests
             var expectedUser = new User() { NickName = "49940", UserName = "John" };
             AddUser(expectedUser);
 
-            var response = _restClient.ExecuteRequest("Services/TestService/Users", Method.GET); 
-           
+            var response = _restClient.ExecuteRequest("Services/TestService/Users", Method.GET);
+
 
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             var users = NewtonsoftJsonSerializer.Default.Deserialize<List<User>>(response);
-            Assert.AreEqual(1,users.Count);
+            Assert.AreEqual(1, users.Count);
             Assert.AreEqual(expectedUser, users[0]);
         }
 
@@ -67,10 +76,23 @@ namespace WebServicesIntergrationTests
 
             var response = _restClient.ExecuteRequest("Services/TestService/Users", Method.GET);
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
-          
+
             var users = NewtonsoftJsonSerializer.Default.Deserialize<List<User>>(response);
-            CollectionAssert.Contains(users,expectedUser1);
-            CollectionAssert.Contains(users,expectedUser2);
+            CollectionAssert.Contains(users, expectedUser1);
+            CollectionAssert.Contains(users, expectedUser2);
+        }
+
+        [TestCase("&*NickName")]
+        [TestCase("Nick()Name")]
+        [TestCase("NickName}|")]
+        [Test]
+        public void GetUserByNickName_ReturnsBadRequestCode_WhenRequestContainsIllegalCharacter(string invalidNickName)
+        {
+            var response = _restClient.ExecuteRequest("Services/TestService/Users/" + invalidNickName, Method.GET);
+            Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+
+            var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
+            Assert.AreEqual("User NickName contains invalid character.", error.ResponseMessage);
         }
 
         [Test]
@@ -80,7 +102,7 @@ namespace WebServicesIntergrationTests
             Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
 
             var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
-            Assert.AreEqual("User with the NickName:1 was not found.",error.ResponseMessage);
+            Assert.AreEqual("User with the NickName:1 was not found.", error.ResponseMessage);
         }
 
         [Test]
@@ -93,11 +115,44 @@ namespace WebServicesIntergrationTests
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
             var user = NewtonsoftJsonSerializer.Default.Deserialize<User>(response);
-            Assert.AreEqual(expectedUser,user);
+            Assert.AreEqual(expectedUser, user);
+        }
+
+        [Test]
+        public void DeleteUserByNickName_ReturnsNotFoundCode_WhenNoSuchFoundInDB()
+        {
+            var response = _restClient.ExecuteRequest("Services/TestService/Users/MyTestUser111", Method.DELETE);
+
+            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+
+            var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
+            Assert.AreEqual("User with the NickName:MyTestUser111 was not found.", error.ResponseMessage);
+        }
+
+        [TestCase("&*NickName")]
+        [TestCase("Nick()Name")]
+        [TestCase("NickName}|")]
+        [Test]
+        public void DeleteUserByNickName_ReturnsBadRequestCode_WhenRequestContainsIllegalCharacter(string invalidNickName)
+        {
+            var response = _restClient.ExecuteRequest("Services/TestService/Users/" + invalidNickName, Method.DELETE);
+            Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+
+            var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
+            Assert.AreEqual("User NickName contains invalid character.", error.ResponseMessage);
+        }
+
+
+
+        private Process LaunchHostingApplication()
+        {
+            var path = AppDomain.CurrentDomain.BaseDirectory;
+            var appFullPath = Path.Combine(path, "ServiceApplication.exe");
+            return Process.Start(appFullPath);
         }
 
         private void CleanDB()
-        { 
+        {
             using (var db = new WebServicesRepository())
             {
                 var allUsers = db.GetAllUsersFromDB();
@@ -112,6 +167,5 @@ namespace WebServicesIntergrationTests
                 db.AddUser(user);
             }
         }
-
     }
 }

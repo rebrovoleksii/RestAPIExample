@@ -38,6 +38,8 @@ namespace TestTask.WebServicesStorage
         public void DeleteUser(string nickname)
         {
             var userToDelete = _storage.Users.Find(nickname);
+            if (userToDelete == null)
+                throw new ApplicationException();
             _storage.Users.Remove(userToDelete);
             _storage.SaveChanges();
         }

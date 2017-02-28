@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebServices", "UserRESTService\WebServices.csproj", "{F1193221-1916-4E8A-B2B0-3F64CE8C5ED7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebServices", "WebServices\WebServices.csproj", "{F1193221-1916-4E8A-B2B0-3F64CE8C5ED7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebServicesHostApplication", "ServiceApplication\WebServicesHostApplication.csproj", "{6531002C-C9A5-46DD-9A59-822B1F32C2DB}"
 EndProject

@@ -18,6 +18,7 @@ namespace TestTask.ServiceHostApplication
             WebServiceHost host = new WebServiceHost(typeof(UserService));
             host.Opening += UserService.ServiceInitizializationEventHander;
             host.Open();
+            //start listening
             Console.ReadLine();            
         }
     }
