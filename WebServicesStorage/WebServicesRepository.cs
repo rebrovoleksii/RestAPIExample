@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using TestTask.CustomExceptions;
 using TestTask.Models;
 
 namespace TestTask.WebServicesStorage
@@ -31,6 +32,8 @@ namespace TestTask.WebServicesStorage
         public void UpdateUser(User user)
         {
             var userToUpdate = _storage.Users.Find(user.NickName);
+            if (userToUpdate == null)
+                throw new UserNotFoundException();
             userToUpdate.UserName = user.NickName;
             _storage.SaveChanges();
         }
@@ -39,7 +42,7 @@ namespace TestTask.WebServicesStorage
         {
             var userToDelete = _storage.Users.Find(nickname);
             if (userToDelete == null)
-                throw new ApplicationException();
+                throw new UserNotFoundException();
             _storage.Users.Remove(userToDelete);
             _storage.SaveChanges();
         }

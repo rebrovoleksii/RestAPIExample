@@ -91,6 +91,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CustomExceptions\CustomExceptions.csproj">
+      <Project>{4daf439b-de23-4f1d-8015-86acbd7fc52f}</Project>
+      <Name>CustomExceptions</Name>
+    </ProjectReference>
     <ProjectReference Include="..\UserModel\WebServicModels.csproj">
       <Project>{bb1f4107-58df-4bcc-908b-a92ab42879a1}</Project>
       <Name>WebServicModels</Name>

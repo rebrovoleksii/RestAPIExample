@@ -17,33 +17,33 @@ namespace TestTask.WebService
 
         [OperationContract]
         [WebGet(ResponseFormat = WebMessageFormat.Json,
-            UriTemplate = "/Services/TestService/Users")
+            UriTemplate = "/Users")
         ]
         List<User> GetUsers();
 
         [OperationContract]
         [WebGet(ResponseFormat = WebMessageFormat.Json,
-            UriTemplate = "/Services/TestService/Users/{nickname}")]
+            UriTemplate = "/Users/{nickname}")]
         User GetUserByNickName(string nickname);
 
         //[OperationContract]
         //[WebInvoke(Method = "POST",
         //    ResponseFormat = WebMessageFormat.Json,
-        //    UriTemplate = "/Services/TestService/Users",
+        //    UriTemplate = "/Users",
         //      BodyStyle = WebMessageBodyStyle.Wrapped   )]
         //string CreateUser(User user);
 
         [OperationContract]
         [WebInvoke(Method = "DELETE",
             ResponseFormat = WebMessageFormat.Json,
-            UriTemplate = "/Services/TestService/Users/{nickname}",
+            UriTemplate = "/Users/{nickname}",
             BodyStyle = WebMessageBodyStyle.Wrapped)]
         void DeleteUserByNickName(string nickname);
 
         //[OperationContract]
         //[WebInvoke(Method="PUT",
         //    ResponseFormat = WebMessageFormat.Json,
-        //    UriTemplate = "/Services/TestService/Users{nickname}")]
+        //    UriTemplate = "/Users{nickname}")]
         //string GetData(string nickname);
     }
 }

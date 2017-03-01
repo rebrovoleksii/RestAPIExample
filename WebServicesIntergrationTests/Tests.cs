@@ -41,6 +41,8 @@ namespace WebServicesIntergrationTests
             CleanDB();
         }
 
+        #region Tests
+        
         [Test]
         public void GetUsers_ReturnsEmptyResponse_WhenNoUserInDB()
         {
@@ -86,13 +88,25 @@ namespace WebServicesIntergrationTests
         [TestCase("Nick()Name")]
         [TestCase("NickName}|")]
         [Test]
-        public void GetUserByNickName_ReturnsBadRequestCode_WhenRequestContainsIllegalCharacter(string invalidNickName)
+        public void GetUserByNickName_ReturnsBadRequestCode_WhenNickNametContainsIllegalCharacter(string invalidNickName)
         {
             var response = _restClient.ExecuteRequest("Services/TestService/Users/" + invalidNickName, Method.GET);
             Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
 
             var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
-            Assert.AreEqual("User NickName contains invalid character.", error.ResponseMessage);
+            Assert.AreEqual(String.Format("User NickName {0} contains invalid character.", invalidNickName), error.ResponseMessage);
+        }
+
+        [Test]
+        public void GetUserByNickName_ReturnsBadRequestCode_WhenNickNameIsTooLong()
+        {
+            // 21 chars long
+            var invalidNickName = "MaxNickNameLenIs20aaa";
+            var response = _restClient.ExecuteRequest("Services/TestService/Users/" + invalidNickName, Method.GET);
+            Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+
+            var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
+            Assert.AreEqual(String.Format("User NickName {0} is too long.", invalidNickName), error.ResponseMessage);
         }
 
         [Test]
@@ -106,17 +120,33 @@ namespace WebServicesIntergrationTests
         }
 
         [Test]
-        public void GetUserByNickName_ReturnsCorrectUser_WhenOneFoundInDB()
+        public void GetUserByNickName_ReturnsCorrectUser_WithMinNickNameLength()
         {
-            var expectedUser = new User() { NickName = "1111", UserName = "Jane" };
+            var expectedUser = new User() { NickName = "1", UserName = "Jane" };
             AddUser(expectedUser);
 
-            var response = _restClient.ExecuteRequest("Services/TestService/Users/1111", Method.GET);
+            var response = _restClient.ExecuteRequest("Services/TestService/Users/1", Method.GET);
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
             var user = NewtonsoftJsonSerializer.Default.Deserialize<User>(response);
             Assert.AreEqual(expectedUser, user);
         }
+
+        [Test]
+        public void GetUserByNickName_ReturnsCorrectUser_WithMaxNickNameLength()
+        {
+            var nickNameMaxvalue = "MaxNickNameLenIs20aa";
+            var expectedUser = new User() { NickName = nickNameMaxvalue, UserName = "Jane" };
+            AddUser(expectedUser);
+
+            var response = _restClient.ExecuteRequest(String.Format("Services/TestService/Users/{0}",nickNameMaxvalue), Method.GET);
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+            var user = NewtonsoftJsonSerializer.Default.Deserialize<User>(response);
+            Assert.AreEqual(expectedUser, user);
+        }
+
+
 
         [Test]
         public void DeleteUserByNickName_ReturnsNotFoundCode_WhenNoSuchFoundInDB()
@@ -139,10 +169,12 @@ namespace WebServicesIntergrationTests
             Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
 
             var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
-            Assert.AreEqual("User NickName contains invalid character.", error.ResponseMessage);
+            Assert.AreEqual(String.Format("User NickName {0} contains invalid character.", invalidNickName), error.ResponseMessage);
         }
 
+        #endregion
 
+        #region Private helper methods
 
         private Process LaunchHostingApplication()
         {
@@ -167,5 +199,7 @@ namespace WebServicesIntergrationTests
                 db.AddUser(user);
             }
         }
-    }
+
+        #endregion
+     }
 }

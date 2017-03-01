@@ -9,6 +9,7 @@ namespace TestTask.Models
         public User() { }
 
         [Key]
+        [StringLength(20)]
         public string NickName { get; set; }
 
         public string UserName { get; set; }
