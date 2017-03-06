@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.ServiceModel;
 using System.ServiceModel.Web;
-using System.Text;
 using System.ComponentModel.DataAnnotations;
 
 using TestTask.Models;
@@ -16,8 +15,6 @@ using System.Data.Entity;
 
 namespace TestTask.WebService
 {
-    // NOTE: You can use the "Rename" command on the "Refactor" menu to change the class name "Service1" in code, svc and config file together.
-    // NOTE: In order to launch WCF Test Client for testing this service, please select Service1.svc or Service1.svc.cs at the Solution Explorer and start debugging.
     public class UserService : IRestUserService
     {
         public List<User> GetUsers()
@@ -33,19 +30,25 @@ namespace TestTask.WebService
             ValidateNickNameForIllegalChars(nickname);
             ValidateNickNameLength(nickname);
 
+            User retrievedUser = null;
+
             using (var db = new WebServicesRepository())
             {
-                var result = db.GetUserByNickNameFromDB(nickname);
-                if (result == null)
+                try
                 {
-                    var errorDetails = new ResponseMessageDetails()
-                    {
-                        ResponseMessage = String.Format("User with the NickName:{0} was not found.", nickname)
-                    };
-                    throw new WebFaultException<ResponseMessageDetails>(errorDetails, System.Net.HttpStatusCode.NotFound);
+                    retrievedUser = db.GetUserByNickNameFromDB(nickname);
                 }
-                else return result;
+                catch (UserNotFoundException exception)
+                {
+                    ReturnErrorCode(exception.Message, HttpStatusCode.NotFound);
+                }
+                catch (Exception)
+                {
+                    ReturnErrorCode("Something went wrong.", HttpStatusCode.InternalServerError);
+                }
             }
+
+            return retrievedUser;
         }
 
         public void CreateUser(User user)
@@ -58,11 +61,11 @@ namespace TestTask.WebService
                 try
                 {
                     db.AddUser(user);
-                    WebOperationContext.Current.OutgoingResponse.StatusCode = HttpStatusCode.OK;
+                    WebOperationContext.Current.OutgoingResponse.StatusCode = HttpStatusCode.Created;
                 }
-                catch(UserAlreadyExistException)
+                catch(UserAlreadyExistException exception)
                 {
-                    
+                    ReturnErrorCode(exception.Message, HttpStatusCode.Conflict);
                 }
                 catch (Exception)
                 {
@@ -83,10 +86,9 @@ namespace TestTask.WebService
                     db.UpdateUser(user);
                     WebOperationContext.Current.OutgoingResponse.StatusCode = HttpStatusCode.OK;
                 }
-                catch (UserNotFoundException)
+                catch (UserNotFoundException exception)
                 {
-                    var errorMessage = String.Format("User with the NickName:{0} was not found.", user.NickName);
-                    ReturnErrorCode(errorMessage, HttpStatusCode.NotFound);
+                    ReturnErrorCode(exception.Message, HttpStatusCode.NotFound);
                 }
                 catch (Exception)
                 {
@@ -95,28 +97,31 @@ namespace TestTask.WebService
             }
         }
 
-        public void DeleteUserByNickName(string nickname)
+        public User DeleteUserByNickName(string nickname)
         {
             ValidateNickNameForIllegalChars(nickname);
             ValidateNickNameLength(nickname);
+
+            User deletedUser = null;
 
             using (var db = new WebServicesRepository())
             {
                 try
                 {
-                    db.DeleteUser(nickname);
+                    deletedUser = db.DeleteUser(nickname);
                     WebOperationContext.Current.OutgoingResponse.StatusCode = HttpStatusCode.OK;
                 }
-                catch (UserNotFoundException)
+                catch (UserNotFoundException exception)
                 {
-                    var errorMessage = String.Format("User with the NickName:{0} was not found.", nickname);
-                    ReturnErrorCode(errorMessage,HttpStatusCode.NotFound);
+                    ReturnErrorCode(exception.Message, HttpStatusCode.NotFound);
                 }
                 catch (Exception)
                 {
                     ReturnErrorCode("Something went wrong.", HttpStatusCode.InternalServerError);
                 }
             }
+
+            return deletedUser;
         }
 
         public static void ServiceInitizializationEventHander(object sender, EventArgs args)

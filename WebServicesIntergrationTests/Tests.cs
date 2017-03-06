@@ -41,7 +41,65 @@ namespace WebServicesIntergrationTests
             CleanDB();
         }
 
-        #region Tests
+        #region Tests        
+        
+        [Test]
+        public void CreateUser_ReturnsOkCodeAndUserSavedInDB_WhenAddingNewUniqueUser()
+        {
+            var userToCreate = new User() { NickName = "userToCreate", UserName = "Jane J." };
+            var response = _restClient.ExecuteRequestWithBody<User>("Services/TestService/Users", userToCreate, Method.POST);
+
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+            var createdUserInDb = GetUser("userToCreate");
+
+            Assert.AreEqual(userToCreate, createdUserInDb);
+        }
+
+        [Test]
+        public void CreateUser_ReturnsOkCodeAndUserSavedInDB_WhenAddingNewUniqueUserWithoutName()
+        {
+            var userToCreate = new User() { NickName = "userToCreate"};
+            var response = _restClient.ExecuteRequestWithBody<User>("Services/TestService/Users", userToCreate, Method.POST);
+
+            Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
+
+            var createdUserInDb = GetUser("userToCreate");
+
+            Assert.AreEqual(userToCreate, createdUserInDb);
+        }
+
+        [Test]
+        public void CreateUser_ReturnsConflictCode_WhenSuchUserAlreadyExistInDB()
+        {
+            var nickNameMaxvalue = "MaxNickNameLenIs20aa";
+            var user = new User() { NickName = nickNameMaxvalue, UserName = "Jane" };
+            AddUser(user);
+            var url = String.Format("Services/TestService/Users");
+
+            var response = _restClient.ExecuteRequestWithBody<User>(url, user, Method.POST);
+            Assert.AreEqual(HttpStatusCode.Conflict, response.StatusCode);
+
+            var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
+            Assert.AreEqual(String.Format("User with the NickName:{0} already exist.", nickNameMaxvalue), error.ResponseMessage);
+        }
+
+        [TestCase("&*NickName")]
+        [TestCase("Nick()Name")]
+        [TestCase("NickName}|")]
+        [Test]
+        public void CreateUser_ReturnsBadRequestCode_WhenRequestContainsIllegalCharacter(string invalidNickName)
+        {
+            var user = new User() { NickName = invalidNickName, UserName = "Jane" };
+            var url = "Services/TestService/Users";
+
+            var response = _restClient.ExecuteRequestWithBody<User>(url, user, Method.POST);
+            Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+
+            var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
+            Assert.AreEqual(String.Format("User NickName {0} contains invalid character.", invalidNickName), error.ResponseMessage);
+        }
+
         
         [Test]
         public void GetUsers_ReturnsEmptyResponse_WhenNoUserInDB()
@@ -146,7 +204,64 @@ namespace WebServicesIntergrationTests
             Assert.AreEqual(expectedUser, user);
         }
 
+        [Test]
+        public void UpdateUserByNickName_ReturnsOkCodeAndUser_WhenUserDeletedInDB()
+        {
+            var initialUser = new User() { NickName = "UserToUpdate", UserName = "Jane" };
+            AddUser(initialUser);
 
+            var updatedUser = new User() { NickName = "UserToUpdate", UserName = "Jane J." };
+            var response = _restClient.ExecuteRequestWithBody<User>("Services/TestService/Users", updatedUser, Method.PUT);
+
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+
+            var updateUserInDb = GetUser("UserToUpdate");
+
+            Assert.AreEqual(updatedUser, updateUserInDb);
+        }
+
+        [Test]
+        public void UpdateUserByNickName_ReturnsNotFoundCode_WhenNoSuchFoundInDB()
+        {
+            var nickNameMaxvalue = "MaxNickNameLenIs20aa";
+            var user = new User() { NickName = nickNameMaxvalue, UserName = "Jane" };
+            var url = "Services/TestService/Users";
+
+            var response = _restClient.ExecuteRequestWithBody<User>(url, user, Method.PUT);
+            Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
+
+            var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
+            Assert.AreEqual(String.Format("User with the NickName:{0} was not found.", nickNameMaxvalue), error.ResponseMessage);
+        }
+
+        [TestCase("&*NickName")]
+        [TestCase("Nick()Name")]
+        [TestCase("NickName}|")]
+        [Test]
+        public void UpdateUser_ReturnsBadRequestCode_WhenRequestContainsIllegalCharacter(string invalidNickName)
+        {
+            var user = new User() { NickName = invalidNickName, UserName = "Jane" };
+            var url = "Services/TestService/Users";
+
+            var response = _restClient.ExecuteRequestWithBody<User>(url, user, Method.PUT);
+            Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+
+            var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
+            Assert.AreEqual(String.Format("User NickName {0} contains invalid character.", invalidNickName), error.ResponseMessage);
+        }
+
+        [Test]
+        public void DeleteUserByNickName_ReturnsOkCodeAndUser_WhenUserDeletedInDB()
+        {
+            var expectedUser = new User() { NickName = "UserToDelete", UserName = "Jane" };
+            AddUser(expectedUser);
+
+            var response = _restClient.ExecuteRequest("Services/TestService/Users/UserToDelete", Method.DELETE);
+            var deletedUser = NewtonsoftJsonSerializer.Default.Deserialize<User>(response);
+
+            Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
+            Assert.AreEqual(expectedUser, deletedUser);
+        }
 
         [Test]
         public void DeleteUserByNickName_ReturnsNotFoundCode_WhenNoSuchFoundInDB()
@@ -197,6 +312,14 @@ namespace WebServicesIntergrationTests
             using (var db = new WebServicesRepository())
             {
                 db.AddUser(user);
+            }
+        }
+
+        private User GetUser(string nickName)
+        {
+            using (var db = new WebServicesRepository())
+            {
+                return db.GetUserByNickNameFromDB(nickName);
             }
         }
 
