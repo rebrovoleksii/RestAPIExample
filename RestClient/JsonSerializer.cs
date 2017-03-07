@@ -1,6 +1,8 @@
-﻿using Newtonsoft.Json;
+﻿using System.IO;
+
+using Newtonsoft.Json;
+
 using RestSharp.Serializers;
-using System.IO;
 using RestSharp.Deserializers;
 
 namespace TestTask.WebServices.TestRestClient
@@ -16,7 +18,7 @@ namespace TestTask.WebServices.TestRestClient
 
         public string ContentType
         {
-            get { return "application/json"; } // Probably used for Serialization?
+            get { return "application/json"; }
             set { }
         }
 

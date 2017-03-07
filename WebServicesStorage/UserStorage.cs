@@ -10,7 +10,6 @@ namespace TestTask.WebServicesStorage
     {
         public WebServiceStorageContext()
             : base("name = WebServicesDBConnectionString")
-            //: base("WebServicesDB")
         {
             Database.SetInitializer<WebServiceStorageContext>(new CreateDatabaseIfNotExists<WebServiceStorageContext>());
         }

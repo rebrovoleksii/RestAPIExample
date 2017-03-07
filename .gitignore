@@ -155,6 +155,9 @@ UpgradeLog*.htm
 **/App_Data/*.mdf
 **/App_Data/*.ldf
 **/App_Data/*.sdf
+**/DataFolder/*.mdf
+**/DataFolder/*.ldf
+**/DataFolder/*.sdf
 
 
 #LightSwitch generated files
@@ -193,5 +196,4 @@ $RECYCLE.BIN/
 #####
 # End of core ignore list, below put you custom 'per project' settings (patterns or path)
 #####
-
-WebServiceModelsTest/
+TestResult.xml

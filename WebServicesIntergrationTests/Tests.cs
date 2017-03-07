@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.IO;
 using System.Net;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
+using System.Web.Configuration;  
+using System.ServiceModel.Configuration;
+using System.Collections.Specialized;
 
 using NUnit.Framework;
 using RestSharp;
@@ -26,7 +30,8 @@ namespace WebServicesIntergrationTests
         public void TestSuiteSetup()
         {
             _hostingApplication= LaunchHostingApplication();
-            _restClient = new TestRestClient("http://localhost:8000");
+            var testSettings = ConfigurationManager.GetSection("testSettings") as NameValueCollection;
+            _restClient = new TestRestClient(testSettings["UserServiceURL"]);
         }
 
         [OneTimeTearDown]
@@ -47,7 +52,7 @@ namespace WebServicesIntergrationTests
         public void CreateUser_ReturnsOkCodeAndUserSavedInDB_WhenAddingNewUniqueUser()
         {
             var userToCreate = new User() { NickName = "userToCreate", UserName = "Jane J." };
-            var response = _restClient.ExecuteRequestWithBody<User>("Services/TestService/Users", userToCreate, Method.POST);
+            var response = _restClient.ExecuteRequestWithBody<User>("/Users", userToCreate, Method.POST);
 
             Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
@@ -60,7 +65,7 @@ namespace WebServicesIntergrationTests
         public void CreateUser_ReturnsOkCodeAndUserSavedInDB_WhenAddingNewUniqueUserWithoutName()
         {
             var userToCreate = new User() { NickName = "userToCreate"};
-            var response = _restClient.ExecuteRequestWithBody<User>("Services/TestService/Users", userToCreate, Method.POST);
+            var response = _restClient.ExecuteRequestWithBody<User>("/Users", userToCreate, Method.POST);
 
             Assert.AreEqual(HttpStatusCode.Created, response.StatusCode);
 
@@ -75,7 +80,7 @@ namespace WebServicesIntergrationTests
             var nickNameMaxvalue = "MaxNickNameLenIs20aa";
             var user = new User() { NickName = nickNameMaxvalue, UserName = "Jane" };
             AddUser(user);
-            var url = String.Format("Services/TestService/Users");
+            var url = String.Format("/Users");
 
             var response = _restClient.ExecuteRequestWithBody<User>(url, user, Method.POST);
             Assert.AreEqual(HttpStatusCode.Conflict, response.StatusCode);
@@ -91,7 +96,7 @@ namespace WebServicesIntergrationTests
         public void CreateUser_ReturnsBadRequestCode_WhenRequestContainsIllegalCharacter(string invalidNickName)
         {
             var user = new User() { NickName = invalidNickName, UserName = "Jane" };
-            var url = "Services/TestService/Users";
+            var url = "/Users";
 
             var response = _restClient.ExecuteRequestWithBody<User>(url, user, Method.POST);
             Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
@@ -104,7 +109,7 @@ namespace WebServicesIntergrationTests
         [Test]
         public void GetUsers_ReturnsEmptyResponse_WhenNoUserInDB()
         {
-            var response = _restClient.ExecuteRequest("Services/TestService/Users", Method.GET);
+            var response = _restClient.ExecuteRequest("/Users", Method.GET);
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
             var users = NewtonsoftJsonSerializer.Default.Deserialize<List<User>>(response);
@@ -117,7 +122,7 @@ namespace WebServicesIntergrationTests
             var expectedUser = new User() { NickName = "49940", UserName = "John" };
             AddUser(expectedUser);
 
-            var response = _restClient.ExecuteRequest("Services/TestService/Users", Method.GET);
+            var response = _restClient.ExecuteRequest("/Users", Method.GET);
 
 
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -134,7 +139,7 @@ namespace WebServicesIntergrationTests
             AddUser(expectedUser1);
             AddUser(expectedUser2);
 
-            var response = _restClient.ExecuteRequest("Services/TestService/Users", Method.GET);
+            var response = _restClient.ExecuteRequest("/Users", Method.GET);
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
             var users = NewtonsoftJsonSerializer.Default.Deserialize<List<User>>(response);
@@ -148,7 +153,7 @@ namespace WebServicesIntergrationTests
         [Test]
         public void GetUserByNickName_ReturnsBadRequestCode_WhenNickNametContainsIllegalCharacter(string invalidNickName)
         {
-            var response = _restClient.ExecuteRequest("Services/TestService/Users/" + invalidNickName, Method.GET);
+            var response = _restClient.ExecuteRequest("/Users/" + invalidNickName, Method.GET);
             Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
 
             var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
@@ -160,7 +165,7 @@ namespace WebServicesIntergrationTests
         {
             // 21 chars long
             var invalidNickName = "MaxNickNameLenIs20aaa";
-            var response = _restClient.ExecuteRequest("Services/TestService/Users/" + invalidNickName, Method.GET);
+            var response = _restClient.ExecuteRequest("/Users/" + invalidNickName, Method.GET);
             Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
 
             var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
@@ -170,7 +175,7 @@ namespace WebServicesIntergrationTests
         [Test]
         public void GetUserByNickName_ReturnsNotFoundCode_WhenNoUserFoundInDB()
         {
-            var response = _restClient.ExecuteRequest("Services/TestService/Users/1", Method.GET);
+            var response = _restClient.ExecuteRequest("/Users/1", Method.GET);
             Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
 
             var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
@@ -183,7 +188,7 @@ namespace WebServicesIntergrationTests
             var expectedUser = new User() { NickName = "1", UserName = "Jane" };
             AddUser(expectedUser);
 
-            var response = _restClient.ExecuteRequest("Services/TestService/Users/1", Method.GET);
+            var response = _restClient.ExecuteRequest("/Users/1", Method.GET);
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
             var user = NewtonsoftJsonSerializer.Default.Deserialize<User>(response);
@@ -197,7 +202,7 @@ namespace WebServicesIntergrationTests
             var expectedUser = new User() { NickName = nickNameMaxvalue, UserName = "Jane" };
             AddUser(expectedUser);
 
-            var response = _restClient.ExecuteRequest(String.Format("Services/TestService/Users/{0}",nickNameMaxvalue), Method.GET);
+            var response = _restClient.ExecuteRequest(String.Format("/Users/{0}",nickNameMaxvalue), Method.GET);
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
             var user = NewtonsoftJsonSerializer.Default.Deserialize<User>(response);
@@ -211,7 +216,7 @@ namespace WebServicesIntergrationTests
             AddUser(initialUser);
 
             var updatedUser = new User() { NickName = "UserToUpdate", UserName = "Jane J." };
-            var response = _restClient.ExecuteRequestWithBody<User>("Services/TestService/Users", updatedUser, Method.PUT);
+            var response = _restClient.ExecuteRequestWithBody<User>("/Users", updatedUser, Method.PUT);
 
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
 
@@ -225,7 +230,7 @@ namespace WebServicesIntergrationTests
         {
             var nickNameMaxvalue = "MaxNickNameLenIs20aa";
             var user = new User() { NickName = nickNameMaxvalue, UserName = "Jane" };
-            var url = "Services/TestService/Users";
+            var url = "/Users";
 
             var response = _restClient.ExecuteRequestWithBody<User>(url, user, Method.PUT);
             Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
@@ -241,7 +246,7 @@ namespace WebServicesIntergrationTests
         public void UpdateUser_ReturnsBadRequestCode_WhenRequestContainsIllegalCharacter(string invalidNickName)
         {
             var user = new User() { NickName = invalidNickName, UserName = "Jane" };
-            var url = "Services/TestService/Users";
+            var url = "/Users";
 
             var response = _restClient.ExecuteRequestWithBody<User>(url, user, Method.PUT);
             Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
@@ -256,7 +261,7 @@ namespace WebServicesIntergrationTests
             var expectedUser = new User() { NickName = "UserToDelete", UserName = "Jane" };
             AddUser(expectedUser);
 
-            var response = _restClient.ExecuteRequest("Services/TestService/Users/UserToDelete", Method.DELETE);
+            var response = _restClient.ExecuteRequest("/Users/UserToDelete", Method.DELETE);
             var deletedUser = NewtonsoftJsonSerializer.Default.Deserialize<User>(response);
 
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
@@ -266,7 +271,7 @@ namespace WebServicesIntergrationTests
         [Test]
         public void DeleteUserByNickName_ReturnsNotFoundCode_WhenNoSuchFoundInDB()
         {
-            var response = _restClient.ExecuteRequest("Services/TestService/Users/MyTestUser111", Method.DELETE);
+            var response = _restClient.ExecuteRequest("/Users/MyTestUser111", Method.DELETE);
 
             Assert.AreEqual(HttpStatusCode.NotFound, response.StatusCode);
 
@@ -280,7 +285,7 @@ namespace WebServicesIntergrationTests
         [Test]
         public void DeleteUserByNickName_ReturnsBadRequestCode_WhenRequestContainsIllegalCharacter(string invalidNickName)
         {
-            var response = _restClient.ExecuteRequest("Services/TestService/Users/" + invalidNickName, Method.DELETE);
+            var response = _restClient.ExecuteRequest("/Users/" + invalidNickName, Method.DELETE);
             Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
 
             var error = NewtonsoftJsonSerializer.Default.Deserialize<ResponseMessageDetails>(response);
