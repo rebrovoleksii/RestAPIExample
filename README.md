@@ -112,7 +112,14 @@ rewrite service completely with possibly code duplication)
 (gracefully start and stop). Windows Service might be better candidate or even web app with possibility
 to be deployed at cloud (e.g.Azure)
 
-### Extra notes
+### Extra notes & futher improvements
 1. Logging wasn't part of the taks but it's nice to have feature.
-2. There was not requiremetns about what client to use so I user RestSharp library
-since I've used it before and it seemed good option for me as REST client.
+2. There was not requiremetns about what client to use so I took advantage of RestSharp library
+since I've used it before and it seemed good option for me as REST client for API testing.
+3. Add DI for the WCF service
+4. Validation if parameters of incoming request could be implemented via Attributes - this facilitate code reuse if we need e.g. add more services to Users API that also pass some input
+5. "One-click" run of tests is possible. The flow in the script will be following :
+* Setup environment : add env variables, register url of the service, create folder for DB file
+* Restore packages using nuget restore (need to dowload nuget.exe of thee version that compatible with MSBuild installed on PC)
+* Build solution with MSBuild
+* Run tests with NUnit Console
