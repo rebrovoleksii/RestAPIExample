@@ -119,7 +119,7 @@ since I've used it before and it seemed good option for me as REST client for AP
 3. Add DI for the WCF service
 4. Validation if parameters of incoming request could be implemented via Attributes - this facilitate code reuse if we need e.g. add more services to Users API that also pass some input
 5. "One-click" run of tests is possible. The flow in the script will be following :
-* Setup environment : add env variables, register url of the service, create folder for DB file
-* Restore packages using nuget restore (need to dowload nuget.exe of thee version that compatible with MSBuild installed on PC)
-* Build solution with MSBuild
-* Run tests with NUnit Console
+  * Setup environment : add env variables, register url of the service, create folder for DB file
+  * Restore packages using nuget restore (need to dowload nuget.exe of thee version that compatible with MSBuild installed on PC)
+  * Build solution with MSBuild
+  * Run tests with NUnit Console
